@@ -24,8 +24,196 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				<section>
+					<h1>Null is the Devil</h1>
+					<img src="assets/devil.gif" />
+				</section>
+				<section>
+					<p>
+						"I call it my billion-dollar mistake...My goal was to ensure that all use of references should be absolutely safe, with checking performed automatically by the compiler. But I couldn't resist the temptation to put in a null reference, simply because it was so easy to implement. This has led to innumerable errors, vulnerabilities, and system crashes, which have probably caused a billion dollars of pain and damage in the last forty years."
+					</p>
+					<p>
+						<a href="https://en.wikipedia.org/wiki/Null_pointer#History">Tony Hoare</a>
+					</p>
+				</section>
+				<section>
+					<p>
+						"Most bugs are a result of the execution state not being exactly what you think it is."
+					</p>
+					<p>
+						<a href="http://number-none.com/blow/blog/programming/2014/09/26/carmack-on-inlined-code.html">John Carmack</a>
+					</p>
+				</section>
+				<section>
+					<h2>Public Enemy #1</h2>
+					<pre><code data-trim data-noescape>
+						doSomething(arg)
+							if arg is null
+								return
+
+							// other code
+					</code></pre>
+				</section>
+				<section>
+					<h2>🤔</h2>
+					<p class="fragment">S.O.L.I.D.</p>
+					<p class="fragment">a.k.a. the 90s were rad</p>
+					<p class="fragment">Right?</p>
+					<p class="fragment">OOP...😩</p>
+				</section>
+				<section>
+					<h3>Single Responsibility Principle</h3>
+					<p>Okay, well maybe we can salvage something from this OOP mistake 😉 Let's think about things in terms of unit testing and functions. In OOP, a class or module should only do one thing to avoid confusion. What if we said functions should do the same? That would mean that my function should only do one thing, and hopefully, if I give it some input, it'll always return me the same output. This is called deterministic. But if my function returns something other than an expected value i.e. null, then my function is no longer deterministic.</p>
+				</section>
+				<section>
+					<h3>The Rabbit Hole...</h3>
+					<pre><code data-trim data-noescape>
+						doSomething(arg)
+							if arg is null
+								return
+
+							// other code
+
+							doOtherThing(otherArg)
+								val = doSomething(otherArg)
+
+								if val is null
+									return
+					</code></pre>
+				</section>
+				<section>
+					<p>
+						So this is great: my original short-circuit in the doSomething() function is forcing me to short-circuit my new function! But what if I did something worse?
+					</p>
+				</section>
+				<section>
+					<h3>The Rabbit Hole...Continues...</h3>
+					<pre><code data-trim data-noescape>
+						doSomething(arg)
+							if arg is null
+								return
+
+							// other code
+
+						doOtherThing(otherArg)
+							val = doSomething(otherArg)
+
+							// other code using val
+					</code></pre>
+				</section>
+				<section>
+						<p>
+							So this is even better: now I'm not even bothering to check the return value of doSomething(). What if another dev were to start using the doOtherThing() function? What if bad data gets passed into doOtherThing()? How would that dev have any idea what is correct data and that the function call could return something unexpected?
+						</p>
+					</section>
+					<section>
+						<h2>🔧</h2>
+						<h2>So How to Fix It?</h2>
+					</section>
+					<section>
+						<h3>Hmm...How About Default Args!</h3>
+						<pre><code data-trim data-noescape>
+							doSomething(arg="value")
+								// some code with arg
+
+								doOtherThing(otherArg) 
+									// hmm...what if otherArg is null?
+									val = doSomething(otherArg)
+						</code></pre>
+					</section>
+					<section>
+						<h3>A Dangerous Solution</h3>
+						<p>
+							This is better in that our code won't fail on a null value, and may even save us a bit of time when we're feeling too lazy to pass-in an arg! Unfortunately, by making a functional contract optional, we may end up confusing other devs, causing them to forget to pass in data! And of course, it still doesn't help us during runtime, because bad data may unintentionally default the arg.
+						</p>
+					</section>
+					<section>
+						<h1>Enter Strong Typing Stage Left!</h1>
+					</section>
+					<section>
+						<img src="assets/facepalm.jpg" />
+					</section>
+					<section>
+						<h3>Got the Safety On Ol' Betsy</h3>
+						<pre><code data-trim data-noescape>
+							doSomething(arg: string)
+								// some code with arg
+
+								doOtherThing(otherArg: object)
+									// what if otherArg.val is null during runtime?
+									val = doSomething(otherArg.val)
+						</code></pre>
+					</section>
+					<section>
+						<p>
+							Strong typing does indeed enforce typing at compile time, but typically, null rears it's head during runtime. Bad data can still be passed-in!
+						</p>
+						<p class="fragment">Of course, if you still like writing code with the training wheels on, then knock yourself out. The jury is still out on the "benefits" of strong typing.</p>
+					</section>
+					<section>
+							<h1>👋</h1>
+							<h1>Exit Strong Typing Stage Right </h1>
+							<h1>👋</h1>
+					</section>
+					<section>
+						<h3>I Know, Just Be Smart, and Use Functional!!! 🤓</h3>
+						<p>
+							Err...no. Since we're already dealing with functions, then we're already functional. I suppose you could pass back a proxy value.
+						</p>
+					</section>
+					<section>
+						<h3>So It's Complicated...</h3>
+						<pre><code data-trim data-noescape>
+							doSomething(arg)
+								// some code
+								return Promise()
+
+							doOtherThing(otherArg)
+								promise = doSomething(otherArg)
+
+								promise.then(handlePromise)
+								promise.catch(errorPromise)
+						</code></pre>
+					</section>
+					<section>
+						<h3>If It Looks Smart, You're Doing It Wrong</h3>
+						<p>
+							Unfortunately, passing a proxy value like a Promise (or an Either or a Maybe for you ADT gurus) only makes your code more complicated. Sure, your code won't fail, but you just abstracted away your code so that no one can easily tell what's going on. And no, having separate code branching paths through your entire codebase only SKYROCKETS YOUR CYCLOMATIC COMPLEXTITY.
+						</p>
+					</section>
+					<section>
+						<h3>An Even Better Solution</h3>
+						<p class="fragment">Use GraphQL</p>
+						<img class="fragment" src="assets/mic-drop.gif" />
+					</section>
+					<section>
+						<p>
+							Or more precisely, validate your code so that whenever any data enters your app there's no way in hell it's missing!
+						</p>
+						<p class="fragment">
+							Embrace default models, mixins, and errors! If you're missing data, then most of the time your app should fail gracefully! Trying to code around missing data will result in you rewriting your app within a few years!
+						</p>
+						<p class="fragment">
+							And Don't Tell the Suits! 🤫
+						</p>
+					</section>
+					<section>
+						<h2>Remember, Remember...</h2>
+						<p>
+							You write code for the poor soul who must maintain it months from now. God have mercy upon their soul.
+						</p>
+					</section>
+					<section>
+						<h2>In Closing</h2>
+						<p class="fragment">My name is Abe</p>
+						<p class="fragment">I like to eat raisins</p>
+						<p class="fragment">These opinions are not my own</p>
+						<p class="fragment">Tomorrow I will wake up and COBOL will be the best language</p>
+						<p>Please Hire Me!</p>
+					</section>
+					<section>
+						<p><a href="https://github.com/quidmonkey"><img src="assets/github.svg" /></a></p>
+					</section>
 			</div>
 		</div>
 
